@@ -1,0 +1,453 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PulseChat — Real-Time Chat</title>
+  <style>
+    :root {
+      --bg: #0b1020;
+      --panel: #121a30;
+      --panel-2: #182340;
+      --text: #eef2ff;
+      --muted: #94a3b8;
+      --accent: #6366f1;
+      --accent-hover: #4f46e5;
+      --mine: #3730a3;
+      --border: rgba(255, 255, 255, 0.08);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      height: 100vh;
+      display: grid;
+      place-items: center;
+      padding: 16px;
+    }
+
+    .app {
+      width: 100%;
+      max-width: 960px;
+      height: 88vh;
+      max-height: 780px;
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      display: grid;
+      grid-template-columns: 260px 1fr;
+      overflow: hidden;
+      box-shadow: 0 24px 60px rgba(0, 0, 0, 0.45);
+    }
+
+    .sidebar {
+      background: var(--panel-2);
+      border-right: 1px solid var(--border);
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    .brand {
+      font-size: 1.25rem;
+      font-weight: 700;
+      letter-spacing: 0.3px;
+    }
+
+    .brand span {
+      color: #818cf8;
+    }
+
+    .section-title {
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--muted);
+      margin-bottom: 8px;
+    }
+
+    .room-badge {
+      background: rgba(99, 102, 241, 0.16);
+      border: 1px solid rgba(99, 102, 241, 0.35);
+      color: #c7d2fe;
+      padding: 8px 12px;
+      border-radius: 10px;
+      font-weight: 600;
+      font-size: 0.92rem;
+    }
+
+    .user-list {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      overflow-y: auto;
+    }
+
+    .user-list li {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.9rem;
+      color: #e2e8f0;
+    }
+
+    .dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #22c55e;
+      flex-shrink: 0;
+    }
+
+    .switch-room {
+      margin-top: auto;
+      display: flex;
+      gap: 8px;
+    }
+
+    .chat-area {
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+    }
+
+    .chat-header {
+      padding: 16px 22px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .chat-header h2 {
+      font-size: 1.05rem;
+    }
+
+    .typing {
+      font-size: 0.82rem;
+      color: #a5b4fc;
+      min-height: 18px;
+    }
+
+    .messages {
+      flex: 1;
+      padding: 20px 22px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .msg {
+      max-width: 72%;
+      padding: 10px 14px;
+      border-radius: 14px;
+      background: var(--panel-2);
+      border: 1px solid var(--border);
+      align-self: flex-start;
+    }
+
+    .msg.mine {
+      background: var(--mine);
+      border-color: rgba(129, 140, 248, 0.4);
+      align-self: flex-end;
+    }
+
+    .msg-meta {
+      font-size: 0.74rem;
+      color: var(--muted);
+      margin-bottom: 4px;
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .msg-meta strong {
+      color: #e0e7ff;
+    }
+
+    .msg-text {
+      font-size: 0.95rem;
+      line-height: 1.4;
+      word-break: break-word;
+    }
+
+    .sys-msg {
+      align-self: center;
+      font-size: 0.8rem;
+      color: var(--muted);
+      background: rgba(255, 255, 255, 0.03);
+      padding: 5px 12px;
+      border-radius: 999px;
+    }
+
+    .composer {
+      padding: 14px 20px;
+      border-top: 1px solid var(--border);
+      display: flex;
+      gap: 10px;
+    }
+
+    input {
+      background: var(--bg);
+      color: var(--text);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 11px 14px;
+      font-size: 0.92rem;
+      outline: none;
+      width: 100%;
+    }
+
+    input:focus {
+      border-color: #818cf8;
+    }
+
+    button {
+      background: var(--accent);
+      color: white;
+      border: none;
+      border-radius: 10px;
+      padding: 11px 18px;
+      font-weight: 600;
+      font-size: 0.92rem;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+
+    button:hover {
+      background: var(--accent-hover);
+    }
+
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(6, 9, 19, 0.8);
+      display: grid;
+      place-items: center;
+      padding: 16px;
+      z-index: 10;
+    }
+
+    .modal-backdrop.hidden {
+      display: none;
+    }
+
+    .modal {
+      width: 100%;
+      max-width: 380px;
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .modal h3 {
+      font-size: 1.2rem;
+    }
+
+    .modal p {
+      font-size: 0.88rem;
+      color: var(--muted);
+    }
+
+    @media (max-width: 720px) {
+      .app {
+        grid-template-columns: 1fr;
+        height: 94vh;
+      }
+      .sidebar {
+        display: none;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="modal-backdrop" id="joinModal">
+    <form class="modal" id="joinForm">
+      <h3>Join PulseChat</h3>
+      <p>Enter your display name and a room name to start chatting.</p>
+      <input type="text" id="usernameInput" placeholder="Your name (e.g. Aarav)" required maxlength="24" />
+      <input type="text" id="roomInput" placeholder="Room (e.g. general)" value="general" required maxlength="24" />
+      <button type="submit">Enter Chat</button>
+    </form>
+  </div>
+
+  <div class="app">
+    <aside class="sidebar">
+      <div class="brand">Pulse<span>Chat</span></div>
+
+      <div>
+        <div class="section-title">Active Room</div>
+        <div class="room-badge" id="sidebarRoom">#general</div>
+      </div>
+
+      <div>
+        <div class="section-title">Online (<span id="onlineCount">0</span>)</div>
+        <ul class="user-list" id="userList"></ul>
+      </div>
+
+      <form class="switch-room" id="switchRoomForm">
+        <input type="text" id="newRoomInput" placeholder="Switch room..." maxlength="24" />
+        <button type="submit">Go</button>
+      </form>
+    </aside>
+
+    <main class="chat-area">
+      <header class="chat-header">
+        <h2 id="headerRoom">#general</h2>
+        <div class="typing" id="typingIndicator"></div>
+      </header>
+
+      <div class="messages" id="messages"></div>
+
+      <form class="composer" id="messageForm">
+        <input type="text" id="messageInput" placeholder="Type a message..." autocomplete="off" required />
+        <button type="submit">Send</button>
+      </form>
+    </main>
+  </div>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script>
+    const socket = io();
+
+    const joinModal = document.getElementById("joinModal");
+    const joinForm = document.getElementById("joinForm");
+    const usernameInput = document.getElementById("usernameInput");
+    const roomInput = document.getElementById("roomInput");
+    const switchRoomForm = document.getElementById("switchRoomForm");
+    const newRoomInput = document.getElementById("newRoomInput");
+    const messageForm = document.getElementById("messageForm");
+    const messageInput = document.getElementById("messageInput");
+    const messagesEl = document.getElementById("messages");
+    const userListEl = document.getElementById("userList");
+    const onlineCountEl = document.getElementById("onlineCount");
+    const sidebarRoomEl = document.getElementById("sidebarRoom");
+    const headerRoomEl = document.getElementById("headerRoom");
+    const typingEl = document.getElementById("typingIndicator");
+
+    let currentUser = "";
+    let typingTimeout = null;
+    const typingUsers = new Set();
+
+    function escapeHtml(str) {
+      return String(str)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#39;");
+    }
+
+    function updateTypingDisplay() {
+      if (typingUsers.size === 0) {
+        typingEl.textContent = "";
+      } else if (typingUsers.size === 1) {
+        const [only] = typingUsers;
+        typingEl.textContent = `${only} is typing...`;
+      } else {
+        typingEl.textContent = `${typingUsers.size} people are typing...`;
+      }
+    }
+
+    joinForm.addEventListener("submit", (e) => {
+      e.preventDefault();
+      const username = usernameInput.value.trim();
+      const room = roomInput.value.trim() || "general";
+      if (!username) return;
+      socket.emit("join_room", { username, room });
+    });
+
+    switchRoomForm.addEventListener("submit", (e) => {
+      e.preventDefault();
+      const room = newRoomInput.value.trim();
+      if (!room || !currentUser) return;
+      socket.emit("join_room", { username: currentUser, room });
+      newRoomInput.value = "";
+    });
+
+    socket.on("joined_room", ({ username, room }) => {
+      currentUser = username;
+      sidebarRoomEl.textContent = `#${room}`;
+      headerRoomEl.textContent = `#${room}`;
+      messagesEl.innerHTML = "";
+      typingUsers.clear();
+      updateTypingDisplay();
+      joinModal.classList.add("hidden");
+      messageInput.focus();
+    });
+
+    socket.on("room_users", (users) => {
+      onlineCountEl.textContent = users.length;
+      userListEl.innerHTML = "";
+      users.forEach((name) => {
+        const li = document.createElement("li");
+        li.innerHTML = `<span class="dot"></span><span>${escapeHtml(name)}</span>`;
+        userListEl.appendChild(li);
+      });
+    });
+
+    messageForm.addEventListener("submit", (e) => {
+      e.preventDefault();
+      const text = messageInput.value.trim();
+      if (!text) return;
+      socket.emit("chat_message", text);
+      socket.emit("typing", false);
+      messageInput.value = "";
+    });
+
+    messageInput.addEventListener("input", () => {
+      socket.emit("typing", true);
+      clearTimeout(typingTimeout);
+      typingTimeout = setTimeout(() => {
+        socket.emit("typing", false);
+      }, 1000);
+    });
+
+    socket.on("typing", ({ username, isTyping }) => {
+      if (isTyping) {
+        typingUsers.add(username);
+      } else {
+        typingUsers.delete(username);
+      }
+      updateTypingDisplay();
+    });
+
+    socket.on("system_message", ({ text }) => {
+      const div = document.createElement("div");
+      div.className = "sys-msg";
+      div.textContent = text;
+      messagesEl.appendChild(div);
+      messagesEl.scrollTop = messagesEl.scrollHeight;
+    });
+
+    socket.on("chat_message", (msg) => {
+      const isMine = msg.senderId === socket.id;
+      const div = document.createElement("div");
+      div.className = `msg ${isMine ? "mine" : ""}`;
+      div.innerHTML = `
+        <div class="msg-meta">
+          <strong>${escapeHtml(isMine ? "You" : msg.sender)}</strong>
+          <span>${escapeHtml(msg.time)}</span>
+        </div>
+        <div class="msg-text">${escapeHtml(msg.text)}</div>
+      `;
+      messagesEl.appendChild(div);
+      messagesEl.scrollTop = messagesEl.scrollHeight;
+    });
+  </script>
+</body>
+</html>
